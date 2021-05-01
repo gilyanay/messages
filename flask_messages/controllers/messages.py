@@ -59,7 +59,9 @@ def read_message(message_id):
         if message:
             message.is_read = 1
             s.commit()
-        return message_response_format(message)
+            return message_response_format([message])
+        else:
+            return "there is no messages to read"
 
 
 @messages_bp.route("/delete_message/<int:message_id>", methods=["DELETE"])
