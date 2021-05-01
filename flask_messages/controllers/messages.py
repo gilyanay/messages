@@ -1,8 +1,9 @@
 import datetime
 import json
 import logging
+from typing import List
 
-from flask import Blueprint, request, make_response
+from flask import Blueprint, request, make_response, jsonify
 from sqlalchemy.orm import Session
 
 from flask_messages.repositories import mysql
@@ -37,7 +38,7 @@ def get_all_messages():
     with mysql.session_scope() as s:
         s: Session
         messages = s.query(Message).filter(Message.sender_id == user_id).all()
-    return messages
+        return message_response_format(messages)
 
 
 @messages_bp.route("/get_all_unread_messages", methods=["GET"])
@@ -46,7 +47,7 @@ def get_all_unread_messages():
     with mysql.session_scope() as s:
         s: Session
         messages = s.query(Message).filter(Message.sender_id == user_id, Message.is_read == 0).all()
-    return messages
+        return message_response_format(messages)
 
 
 @messages_bp.route("/read_message/<int:message_id>", methods=["GET"])
@@ -58,7 +59,7 @@ def read_message(message_id):
         if message:
             message.is_read = 1
             s.commit()
-    return message
+        return message_response_format(message)
 
 
 @messages_bp.route("/delete_message/<int:message_id>", methods=["DELETE"])
@@ -76,3 +77,15 @@ def get_payload_from_auth() -> int:
     if auth_token:
         user_id: int = User.decode_auth_token(auth_token)
         return user_id
+
+
+def message_response_format(messages:List[Message]):
+    messages_to_send= []
+    for message in messages:
+        messages_to_send.append(
+            {
+                "message id": message.id,
+                "subject": message.subject,
+                "message": message.message
+            })
+    return jsonify({"messages": messages_to_send})
